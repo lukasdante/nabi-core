@@ -1,0 +1,6 @@
+devel_space: /home/louis/Desktop/nabi/devel
+install: false
+install_space: /home/louis/Desktop/nabi/install
+profile: default
+source_space: /home/louis/Desktop/nabi/src
+workspace: /home/louis/Desktop/nabi

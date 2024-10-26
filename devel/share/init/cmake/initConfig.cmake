@@ -1,0 +1,1 @@
+/home/louis/Desktop/nabi/devel/.private/init/share/init/cmake/initConfig.cmake

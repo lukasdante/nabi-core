@@ -1,0 +1,11 @@
+env
+env/*
+.env
+logs/*
+logs
+.logs
+__pycache__
+__pycache__/*
+*.swp
+.catkin_tools/*
+.catkin_workspace
