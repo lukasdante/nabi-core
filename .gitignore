@@ -9,3 +9,7 @@ __pycache__/*
 *.swp
 .catkin_tools/*
 .catkin_workspace
+*.json
+json/*
+env312/
+env312/*
