@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import rospy
 from std_msgs.msg import String, Bool
 import pyaudio
@@ -7,7 +9,6 @@ import yaml
 
 class MicrophoneNode:
     def __init__(self):
-        rospy.init_node('microphone_node')
 
         # Load configurations
         self.load_config()
@@ -16,6 +17,10 @@ class MicrophoneNode:
         self.audio_pub = rospy.Publisher('microphone/audio_ready', Bool, queue_size=10)
         rospy.Subscriber('conversation/ready', Bool, self.ready_callback)
 
+        self.start_recording = rospy.get_param('~start_recording', False)
+        
+        rospy.loginfo("Microphone node successfully launched.")
+        rospy.loginfo(self.start_recording)
     def load_config(self):
         """ Load configuration from YAML file. """
 
@@ -32,7 +37,7 @@ class MicrophoneNode:
                 self.silence_limit = config.get('SILENCE_LIMIT', 1.2)
                 self.output_file = config.get('OUTPUT_FILE', 'output.wav')
         except Exception as e:
-            rospy.logerr(f'Failed to load configuration: {e}')
+            rospy.logerr('Failed to load configuration.')
             raise
 
     def ready_callback(self, msg):
@@ -59,7 +64,7 @@ class MicrophoneNode:
             rospy.loginfo("Recording started. Speak into the microphone...")
             
         except Exception as e:
-            rospy.logerr(f"Failed to open audio stream: {e}")
+            rospy.logerr("Failed to open audio stream:")
             return
 
         frames = []
@@ -69,13 +74,13 @@ class MicrophoneNode:
             try:
                 data = stream.read(self.chunk_size)
             except Exception as e:
-                rospy.logerr(f"Error reading audio data: {e}")
+                rospy.logerr("Error reading audio data:")
 
             frames.append(data)
             
             # Calculate the volume and print it for calibration
             volume = self.get_volume(data)
-            rospy.loginfo(f"Current volume: {volume}")
+            rospy.loginfo("Current volume:")
             
             if volume < self.threshold:
                 silent_chunks += 1
@@ -99,19 +104,21 @@ class MicrophoneNode:
         wf.writeframes(b''.join(frames))
         wf.close()
     
-        rospy.loginfo(f"Recording saved as {self.output_file}")
+        rospy.loginfo("Recording saved as")
+        self.start_recording = False
 
         # publish to topic TODO: add publish to speaker node
         self.audio_pub.publish(True)
 
     def run(self):
         rate = rospy.Rate(10)
+        while not ros.is_shutdown():
+            rospy.loginfo("Microphone node is successfully running.")
+            rospy.spin()
 
-        rospy.loginfo(f"Microphone node is successfully running.")
-
-        while not rospy.is_shutdown() and self.ready:
-            self.record_audio()
-            rate.sleep()
-   
-node = MicrophoneNode()
-node.run()
+if __name__ == '__main__':
+    rospy.init_node('microphone_node')
+    rospy.loginfo('Microphone node initialized.')
+    rospy.run()
+    # node = MicrophoneNode()
+    # node.run()

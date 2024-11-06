@@ -18,3 +18,5 @@ python-dotenv==1.0.1
 rsa==4.9
 setuptools==75.1.0
 wheel==0.44.0
+pyyaml
+rospkg

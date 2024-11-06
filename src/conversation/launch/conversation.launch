@@ -1,3 +1,6 @@
 <launch>
+    <arg name="start_recording" default="true"/>
+    <param name="start_recording" value="$(arg start_recording)"/>
     <node name="microphone_node" pkg="conversation" type="microphone_node.py" output="screen"/>
+
 </launch>

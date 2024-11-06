@@ -1,0 +1,1 @@
+/home/louis/Desktop/nabi/devel/.private/conversation/share/conversation/cmake/conversationConfig.cmake

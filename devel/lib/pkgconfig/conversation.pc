@@ -1,0 +1,1 @@
+/home/louis/Desktop/nabi/devel/.private/conversation/lib/pkgconfig/conversation.pc

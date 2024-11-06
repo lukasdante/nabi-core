@@ -1,0 +1,8 @@
+prefix=/home/louis/Desktop/nabi/devel/.private/conversation
+
+Name: conversation
+Description: Description of conversation
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
