@@ -13,3 +13,5 @@ __pycache__/*
 json/*
 env312/
 env312/*
+*.txt
+p.py

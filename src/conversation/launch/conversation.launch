@@ -1,0 +1,3 @@
+<launch>
+    <node name="microphone_node" pkg="conversation" type="microphone_node.py" output="screen"/>
+</launch>
