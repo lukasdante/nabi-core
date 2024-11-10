@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/louis/catkin_ws/devel/.private/nabi/setup.sh

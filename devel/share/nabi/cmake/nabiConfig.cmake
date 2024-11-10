@@ -1,0 +1,1 @@
+/home/louis/catkin_ws/devel/.private/nabi/share/nabi/cmake/nabiConfig.cmake

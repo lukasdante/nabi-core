@@ -1,0 +1,8 @@
+prefix=/home/louis/catkin_ws/install
+
+Name: nabi
+Description: Description of nabi
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

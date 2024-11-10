@@ -1,0 +1,1 @@
+/home/louis/catkin_ws/devel/.private/nabi/lib/pkgconfig/nabi.pc
