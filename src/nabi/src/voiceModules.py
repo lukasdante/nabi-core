@@ -28,9 +28,9 @@ class Recorder:
             self.sample_rate = config.get('SAMPLE_RATE', 16000)
             self.threshold = config.get('THRESHOLD', 1000)
             self.silence_limit = config.get('SILENCE_LIMIT', 1.2)
-            self.output_file = config.get('INPUT_AUDIO_FILE', 'input.wav')
+            self.input_file = config.get('INPUT_AUDIO_FILE', 'input.wav')
             self.audio_format = pyaudio.paInt16
-            self.is_silent = True
+            self.has_speech = True
             rospy.loginfo("Recorder initialized.")
         except Exception as e:
             rospy.logerr(f"Unable to initialize recorder: {e}")
@@ -69,10 +69,10 @@ class Recorder:
             
             # Calculate the volume
             volume = self.get_volume(data)
-            
+
             # For every 200ms display the volume
             if rospy.get_time() - last_log_time >= 0.2:
-                rospy.loginfo(f"Current volume:{volume}")
+                rospy.loginfo(f"Current volume: {volume}")
                 last_log_time = rospy.get_time()
             
             # Record silent chunks and stop recording once limit is reached
@@ -98,14 +98,14 @@ class Recorder:
         audio.terminate()
 
         # Save the recorded audio to a file
-        wf = wave.open(self.output_file, 'wb')
+        wf = wave.open(self.input_file, 'wb')
         wf.setnchannels(self.channels)
         wf.setsampwidth(audio.get_sample_size(self.audio_format))
         wf.setframerate(self.sample_rate)
         wf.writeframes(b''.join(frames))
         wf.close()
     
-        rospy.loginfo(f"Recording has been saved as {self.output_file}.")
+        rospy.loginfo(f"Recording has been saved as {self.input_file}.")
 
     def get_volume(self, data):
         """ Obtains the mean absolute value of the current audio. """
@@ -123,7 +123,7 @@ class Writer:
             self.language = config.get('LANG', 'en-US')
             self.sample_rate = config.get('SAMPLE_RATE', 16000)
             self.encoding_format = config.get('ENCODING', 'LINEAR16')
-            self.audio_file = config.get('INPUT_AUDIO_FILE', 'input.wav')
+            self.input_file = config.get('INPUT_AUDIO_FILE', 'input.wav')
 
             rospy.loginfo("Writer initialized.")
         except Exception as e:
@@ -133,7 +133,7 @@ class Writer:
         """ Encodes audio to text. """
 
         # Load and encode the audio file
-        encoded_audio = self.encode_audio(self.audio_file)
+        encoded_audio = self.encode_audio()
 
         # Configure the request
         headers = {'Content-Type': 'application/json'}
@@ -165,8 +165,8 @@ class Writer:
                     rospy.loginfo(f"Transcript: {transcription}")
 
                     # Remove the audio file
-                    if os.path.exists(self.audio_file):
-                        os.remove(self.audio_file)
+                    if os.path.exists(self.input_file):
+                        os.remove(self.input_file)
 
                     return transcription
             else:
@@ -176,10 +176,10 @@ class Writer:
             rospy.logerr(f"Writer request error {response.status_code}.")
             return None
     
-    def encode_audio(self, audio_file):
+    def encode_audio(self):
         """ Encode audio to base64 and decode to utf-8. """
 
-        with open(audio_file, 'rb') as f:
+        with open(self.input_file, 'rb') as f:
             audio_content = f.read()
         return base64.b64encode(audio_content).decode('utf-8')
 
@@ -192,14 +192,9 @@ class Parser:
             self.service_account = os.getenv("DFCX_SERVICE_ACCOUNT")
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.service_account
             self.agent = f'projects/{self.project_id}/locations/{self.location_id}/agents/{self.agent_id}'
-            self.session_id = uuid.uuid4()
+            self.session_id = None
             self.language = config.get('LANG', 'en-US')
-            self.session_path = f'{self.agent}/sessions/{self.session_id}'
-            self.api_endpoint = f'{AgentsClient.parse_agent_path(self.agent)["location"]}-dialogflow.googleapis.com:443'
-            self.client_options = ClientOptions(api_endpoint=self.api_endpoint)
-            self.session_client = SessionsClient(client_options=self.client_options)
-            
-            
+
             rospy.loginfo("Parser initialized.")
         except Exception as e:
             rospy.logerr(f"Unable to initialize parser: {e}")
@@ -207,18 +202,25 @@ class Parser:
     def detect_intent(self, text):
         """ Detect intent, extract parameters, and output response. """
 
+        if not self.session_id:
+            self.session_id = uuid.uuid4()
+        
+        session_path = f'{self.agent}/sessions/{self.session_id}'
+        api_endpoint = f'{AgentsClient.parse_agent_path(self.agent)["location"]}-dialogflow.googleapis.com:443'
+        client_options = ClientOptions(api_endpoint=api_endpoint)
+        session_client = SessionsClient(client_options=client_options)
+
         # Configure the request
         text_input = session.TextInput(text=text)
         query_input = session.QueryInput(text=text_input, language_code=self.language)
         
         # Send the request
         request = session.DetectIntentRequest(
-            session=self.session_path, query_input=query_input
+            session=session_path, query_input=query_input
         )
 
         # Obtain the response
-        response = self.session_client.detect_intent(request=request)
-        rospy.loginfo(f"Query text: {response.query_result.text}")
+        response = session_client.detect_intent(request=request)
 
         # 
         response_messages = [
@@ -227,6 +229,8 @@ class Parser:
 
         # Convert the parameters to a dictionary and prepare response
         parameters = MessageToDict(response._pb)
+        rospy.loginfo(f"Parameters: {parameters['queryResult']['parameters']}")
+
         response_text = ' '.join(response_messages)
         rospy.loginfo(f"Response text: {response_text}")
         
@@ -241,11 +245,11 @@ class Talker:
             with open(self.service_account) as f:
                 self.service_account_info = json.load(f)
 
-            self.language = os.getenv('STT_API_KEY')
+            self.language = config.get('LANG', 'en-US')
             self.gender = config.get('GENDER', 'FEMALE')
             self.accent = config.get('ACCENT', 'en-US-Neural2-C')
             self.encoding_format = config.get('ENCODING', 'LINEAR16')
-            self.audio_file = config.get('OUTPUT_AUDIO_FILE', 'output.wav')
+            self.output_file = config.get('OUTPUT_AUDIO_FILE', 'output.wav')
             self.token_validity = config.get('TOKEN_LIFE', 3600)
             self.token_url = "https://oauth2.googleapis.com/token"
             self.scopes = "https://www.googleapis.com/auth/cloud-platform"
@@ -291,7 +295,7 @@ class Talker:
         signed_jwt = google_jwt.encode(crypt.RSASigner.from_service_account_info(self.service_account_info), payload)
 
         # Request access token
-        response = requests.post(TOKEN_URL, data={
+        response = requests.post(self.token_url, data={
             "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
             "assertion": signed_jwt
         })
@@ -359,7 +363,7 @@ class Talker:
                 audio.terminate()
 
             rospy.loginfo("Playback finished.")
-            os.remove(file_path)
+            os.remove(self.output_file)
         except Exception as e:
             rospy.logerr(f"An error occurred: {e}")
 
